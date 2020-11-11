@@ -8,14 +8,18 @@ import requests
 import pymysql
 import csv
 
+
+
 def main():
     try:
-        dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-2', endpoint_url='http://dynamodb.ap-northeast-2.amazonaws.com')
+        dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-2',
+                                  endpoint_url='http://dynamodb.ap-northeast-2.amazonaws.com')
     except:
         logging.error('could not connect to dynamodb')
         sys.exit(1)
     try:
-        conn = pymysql.connect(host, user=username, passwd=password, db=database, port=port, use_unicode=True, charset='utf8')
+        conn = pymysql.connect(host, user=username, passwd=password,
+                               db=database, port=port, use_unicode=True, charset='utf8')
         cursor = conn.cursor()
 
     except:
@@ -28,37 +32,37 @@ def main():
 
     cursor.execute('SELECT id FROM artists')
 
-    countries = ['US', 'CA']
-    for country in countries:
-        for (artist_id, ) in cursor.fetchall():
+    #countries = ['US', 'CA']
+    for (artist_id, ) in cursor.fetchall():
 
-            URL = "https://api.spotify.com/v1/artists/{}/top-tracks".format(artist_id)
-            params = {
-                'country': 'US'
+        URL = "https://api.spotify.com/v1/artists/{}/top-tracks".format(
+            artist_id)
+        params = {
+            'country': 'US'
+        }
+
+        r = requests.get(URL, params=params, headers=headers)
+
+        raw = json.loads(r.text)
+
+        for track in raw['tracks']:
+
+            data = {
+                'artist_id': artist_id
             }
 
-            r = requests.get(URL, params=params, headers=headers)
+            data.update(track)
 
-            raw = json.loads(r.text)
-
-            for track in raw['tracks']:
-
-                data = {
-                    'artist_id': artist_id,
-                    'country': country
-                }
-
-                data.update(track)
-
-                table.put_item(
-                    Item=data
-                )
+            table.put_item(
+                Item=data
+            )
 
 
 def get_headers(client_id, client_secret):
-    
+
     endpoint = "https://accounts.spotify.com/api/token"
-    encoded = base64.b64encode("{}:{}".format(client_id, client_secret).encode('utf-8')).decode('ascii')
+    encoded = base64.b64encode("{}:{}".format(
+        client_id, client_secret).encode('utf-8')).decode('ascii')
 
     headers = {
         "Authorization": "Basic {}".format(encoded)
@@ -79,6 +83,5 @@ def get_headers(client_id, client_secret):
     return headers
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
-
